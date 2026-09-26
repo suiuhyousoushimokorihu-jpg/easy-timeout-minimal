@@ -2,7 +2,7 @@
   "name": "easy-timeout-minimal",
   "version": "1.0.0",
   "private": true,
-  "description": "Minimal Discord timeout bot using mention or reply triggers.",
+  "description": "Minimal Discord timeout bot.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
