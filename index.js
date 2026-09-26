@@ -9,7 +9,6 @@ const {
 const TRIGGERS = new Set(['荒らし', 'スパム', 'タイムアウト']);
 const COOLDOWN_MS = 10 * 60 * 1000;
 const TIMEOUT_MS = 60 * 60 * 1000;
-
 const cooldowns = new Map();
 
 const client = new Client({
@@ -37,10 +36,7 @@ async function resolveTarget(message) {
         referenced.member ??
         await message.guild.members.fetch(referenced.author.id);
 
-      return {
-        target,
-        trigger: message.content.trim(),
-      };
+      return { target, trigger: message.content.trim() };
     } catch {
       return null;
     }
@@ -69,12 +65,12 @@ client.on('messageCreate', async message => {
   const { target } = resolved;
   const me = message.guild.members.me;
 
-  // 1. Bot権限確認
+  // Bot権限
   if (!me?.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-    return reply(message, 'Botに「メンバーをタイムアウト」権限がありません。');
+    return reply(message, 'Botにタイムアウト権限がありません。');
   }
 
-  // 2. 対象が管理者か確認
+  // 管理者
   if (
     target.id === message.guild.ownerId ||
     target.permissions.has(PermissionFlagsBits.Administrator)
@@ -83,33 +79,27 @@ client.on('messageCreate', async message => {
   }
 
   if (!target.moderatable) {
-    return reply(message, 'ロール階層または権限の関係でタイムアウトできません。');
+    return reply(message, 'このユーザーはタイムアウトできません。');
   }
 
-  // 3. CT確認（発動者ごとに10分）
+  // CT
   const now = Date.now();
   const availableAt = cooldowns.get(message.author.id) ?? 0;
 
   if (availableAt > now) {
-    const seconds = Math.ceil((availableAt - now) / 1000);
-    const minutes = Math.ceil(seconds / 60);
-    return reply(message, `クールタイム中です。あと約${minutes}分です。`);
+    const minutes = Math.ceil((availableAt - now) / 60000);
+    return reply(message, `CT中です。あと約${minutes}分。`);
   }
 
-  // 4. 発動
+  // 発動
   try {
     await target.timeout(
       TIMEOUT_MS,
-      `Easy Timeout Minimal: triggered by ${message.author.tag}`
+      `Easy Timeout Minimal: ${message.author.tag}`
     );
 
-    // 成功したときだけCT開始
     cooldowns.set(message.author.id, Date.now() + COOLDOWN_MS);
-
-    await reply(
-      message,
-      `${target.user.username} を1時間タイムアウトしました。`
-    );
+    await reply(message, `${target.user.username} を1時間タイムアウトしました。`);
   } catch (error) {
     console.error(error);
     await reply(message, 'タイムアウトに失敗しました。');
